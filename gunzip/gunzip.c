@@ -22,7 +22,6 @@ int main(int argc, char **argv)
             {
                 printf("%c", buffer);
             }
-            printf("\n");
         }
         fclose(file);
     }
