@@ -11,51 +11,54 @@ typedef struct {
     char letter;
 } element;
 
-// TODO: many global vars, return or exit(1), concatenation
 int curr_file = 1;
 int numOfFiles;
 char ** args;
+int numOfThreads;
+
 pthread_mutex_t curr_file_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t write_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t write_wait = PTHREAD_COND_INITIALIZER;
+
 char *ptr = NULL;
 struct stat filestat;
 size_t curr_chunk;
 int WORK_SIZE = 1048576;
-int numOfThreads;
 int current_writer = 0;
+int writeId = 0;
 
 void *worker(void *my_thread_id) {
     element *my_buffer = (element *) malloc(WORK_SIZE * sizeof(element));
+    element last_element = {0, '\0'};
+
     if (my_buffer == NULL) {
-        printf("Error Allocating Memory for thread %d", *(int *)my_thread_id);
+        fprintf(stderr, "Error Allocating Memory for thread %d\n", *(int *)my_thread_id);
         exit(1);
     }
 
     while (1) {
         int my_chunk = -1, my_limit = -1, writer_id;
-        char *local_ptr = NULL;
-        size_t sz;
+        char *local_ptr = NULL; size_t sz;
 
         pthread_mutex_lock(&curr_file_lock);
-        if (numOfFiles <= 0) {
-            pthread_mutex_unlock(&curr_file_lock);
-            free(my_buffer);
-            return NULL;
-        }
-
         if (ptr == NULL) {
+            if (numOfFiles <= 0) {
+                pthread_mutex_unlock(&curr_file_lock);
+                free(my_buffer);
+                return NULL;
+            }
+
             curr_chunk = 0;
             FILE *file = fopen(args[curr_file], "rb");
             if (file == NULL) {
-                printf("Failed to open file: %s", args[curr_file]);
+                fprintf(stderr, "Failed to open file: %s\n", args[curr_file]);
                 exit(1);
             }
             int fd = fileno(file);
 
 
             if (fstat(fd, &filestat) == -1) {
-                printf("Error retrieving state of file: %s", args[curr_file]);
+                fprintf(stderr, "Error retrieving state of file: %s\n", args[curr_file]);
                 exit(1);
             }
 
@@ -85,7 +88,9 @@ void *worker(void *my_thread_id) {
         }
 
         local_ptr = ptr; sz = filestat.st_size;
-        writer_id = current_writer;
+        writer_id = writeId;
+        writeId++;
+
         pthread_mutex_unlock(&curr_file_lock);
 
 
@@ -112,10 +117,17 @@ void *worker(void *my_thread_id) {
             pthread_cond_wait(&write_wait, &write_lock);
         }
 
-        fwrite(my_buffer, sizeof(element), buffer_len, stdout);
-        current_writer = (current_writer + 1) % numOfThreads;
+        if (last_element.letter == my_buffer[0].letter) {
+            my_buffer[0].num += last_element.num;
+        } else {
+            fwrite(&last_element, sizeof(element), 1, stdout);
+        }
 
-        pthread_cond_signal(&write_wait);
+        fwrite(my_buffer, sizeof(element), buffer_len - 1, stdout);
+        current_writer++;
+        last_element = my_buffer[buffer_len - 1];
+
+        pthread_cond_broadcast(&write_wait);
         pthread_mutex_unlock(&write_lock);
 
         if (my_chunk + my_limit >= sz) {
