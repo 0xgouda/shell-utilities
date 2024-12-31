@@ -10,7 +10,7 @@ int main(int argc, char **argv)
 
     for (int i = 1; i < argc; i++)
     {
-        FILE *file = fopen(argv[1], "rb");
+        FILE *file = fopen(argv[i], "rb");
 
         char buffer;
         int number;
