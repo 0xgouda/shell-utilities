@@ -138,6 +138,10 @@ void *worker(void *my_thread_id) {
                 counter = 1; current_char = local_ptr[i];
             }
         }
+        my_buffer[buffer_len].num = counter;
+        my_buffer[buffer_len].letter = current_char;
+        buffer_len++;
+
         write_buffer(writer_id, my_buffer, buffer_len);
         done_writing();
 
@@ -167,5 +171,7 @@ int main (int argc, char** argv) {
     for (int i = 0; i < numOfThreads; i++) {
         pthread_join(threads[i], NULL);
     }
+    fwrite(&last_element, sizeof(element), 1, stdout);
+
     free(tmp);
 }
