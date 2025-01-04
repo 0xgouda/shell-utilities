@@ -23,7 +23,8 @@ pthread_cond_t write_wait = PTHREAD_COND_INITIALIZER;
 char *ptr = NULL;
 struct stat filestat;
 size_t curr_chunk;
-int WORK_SIZE = 1048576;
+int THREAD_CHUNK = 1048576;
+int NUM_OF_THREAD_BUFFER_ELEMENTS = 100000;
 int current_writer = 0;
 int writeId = 0;
 element last_element = {0, '\0'};
@@ -71,8 +72,8 @@ int open_new_file(element *my_buffer) {
         fprintf(stderr, "Failed to open file: %s\n", args[curr_file]);
         exit(1);
     }
-    int fd = fileno(file);
-
+    int fd = fileno(file);  
+   
     if (fstat(fd, &filestat) == -1) {
         fprintf(stderr, "Error retrieving state of file: %s\n", args[curr_file]);
         exit(1);
@@ -91,7 +92,7 @@ int open_new_file(element *my_buffer) {
 }
 
 void *worker(void *my_thread_id) {
-    element *my_buffer = (element *) malloc(WORK_SIZE * sizeof(element));
+    element *my_buffer = (element *) malloc(NUM_OF_THREAD_BUFFER_ELEMENTS * sizeof(element));
     if (my_buffer == NULL) {
         fprintf(stderr, "Error Allocating Memory for thread %d\n", *(int *)my_thread_id);
         exit(1);
@@ -106,14 +107,14 @@ void *worker(void *my_thread_id) {
 
         int my_chunk = curr_chunk;
         char* local_ptr = ptr;
-        curr_chunk += WORK_SIZE;
+        curr_chunk += THREAD_CHUNK;
         size_t sz = filestat.st_size;
 
         int my_limit = 0;
         if (curr_chunk <= filestat.st_size) {
-            my_limit = WORK_SIZE;
+            my_limit = THREAD_CHUNK;
         } else {
-            my_limit = filestat.st_size - (curr_chunk - WORK_SIZE);
+            my_limit = filestat.st_size - (curr_chunk - THREAD_CHUNK);
             ptr = NULL;
         }
 
@@ -135,6 +136,10 @@ void *worker(void *my_thread_id) {
                 my_buffer[buffer_len].num = counter;
                 my_buffer[buffer_len].letter = current_char;
                 buffer_len++;
+                if (buffer_len > NUM_OF_THREAD_BUFFER_ELEMENTS) {
+                    write_buffer(writer_id, my_buffer, buffer_len);
+                    buffer_len = 0;
+                }
                 counter = 1; current_char = local_ptr[i];
             }
         }

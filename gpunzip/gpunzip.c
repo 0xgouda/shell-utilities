@@ -23,7 +23,8 @@ pthread_cond_t write_wait = PTHREAD_COND_INITIALIZER;
 element *ptr = NULL;
 struct stat filestat;
 size_t curr_chunk;
-int WORK_SIZE = 1048576;
+int THREAD_BUFFER_SIZE = 1048576;
+int NUM_OF_THREAD_CHUNK_ELEMENTS = 3072;
 int current_writer = 0;
 int writeId = 0;
 
@@ -82,7 +83,7 @@ int open_new_file(char *my_buffer) {
 }
 
 void *worker(void *my_thread_id) {
-    char *my_buffer = (char *) malloc(WORK_SIZE);
+    char *my_buffer = (char *) malloc(THREAD_BUFFER_SIZE);
     if (my_buffer == NULL) {
         fprintf(stderr, "Error Allocating Memory for thread %d\n", *(int *)my_thread_id);
         return NULL;
@@ -97,14 +98,14 @@ void *worker(void *my_thread_id) {
 
         int my_chunk = curr_chunk;
         element *local_ptr = ptr + my_chunk;
-        curr_chunk += 1024;
+        curr_chunk += NUM_OF_THREAD_CHUNK_ELEMENTS;
         size_t sz = filestat.st_size;
 
         int my_limit = 0;
         if (curr_chunk * sizeof(element) <= filestat.st_size) {
-            my_limit = 1024;
+            my_limit = NUM_OF_THREAD_CHUNK_ELEMENTS;
         } else {
-            my_limit = (filestat.st_size / sizeof(element)) % 1024;
+            my_limit = (filestat.st_size / sizeof(element)) % NUM_OF_THREAD_CHUNK_ELEMENTS;
             ptr = NULL;
         }
 
@@ -119,7 +120,7 @@ void *worker(void *my_thread_id) {
                 my_buffer[buffer_len] = local_ptr->letter;
                 buffer_len++;
 
-                if (buffer_len >= WORK_SIZE) {
+                if (buffer_len >= THREAD_BUFFER_SIZE) {
                     write_buffer(writer_id, my_buffer, buffer_len);
                     buffer_len = 0;
                 }

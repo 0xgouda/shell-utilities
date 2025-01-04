@@ -1,6 +1,11 @@
 # Shell Utilites
 - a collection of implementations of popular Linux command-line utilities, built from scratch. The tools are simplified versions of cat, zip, unzip, and grep.
 - gpzip & gpunzip are multi-threaded versions of zip & unzip
+
+> gpzip&gzip use RLE encoding e.g aaa = 3a  
+
+> for now gpunzip can run only on output produced by gpzip
+
 # Compile and Run
 ```bash
 gcc -o ggrep ggrep.c
