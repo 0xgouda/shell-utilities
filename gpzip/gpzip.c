@@ -39,10 +39,14 @@ void write_buffer(int writer_id, element *my_buffer, int buffer_len) {
     if (buffer_len && my_buffer[0].letter == last_element.letter) {
         my_buffer[0].num += last_element.num;
     } else {
-        fwrite(&last_element, sizeof(element), 1, stdout);
+        fwrite(&last_element.num, sizeof(int), 1, stdout);
+        fwrite(&last_element.letter, sizeof(char), 1, stdout);
     }
 
-    fwrite(my_buffer, sizeof(element), buffer_len - 1, stdout);
+    for (int i = 0; i < buffer_len; i++) {
+        fwrite(&my_buffer[i].num, sizeof(int), 1, stdout);
+        fwrite(&my_buffer[i].letter, sizeof(char), 1, stdout);
+    }
     last_element = my_buffer[buffer_len - 1];
 
     pthread_mutex_unlock(&write_lock);
@@ -176,7 +180,8 @@ int main (int argc, char** argv) {
     for (int i = 0; i < numOfThreads; i++) {
         pthread_join(threads[i], NULL);
     }
-    fwrite(&last_element, sizeof(element), 1, stdout);
+    fwrite(&last_element.num, sizeof(int), 1, stdout);
+    fwrite(&last_element.letter, sizeof(char), 1, stdout);
 
     free(tmp);
 }
