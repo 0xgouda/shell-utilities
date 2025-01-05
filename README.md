@@ -4,8 +4,6 @@
 
 > gpzip&gzip use RLE encoding e.g aaa = 3a  
 
-> for now gpunzip can run only on output produced by gpzip
-
 # Compile and Run
 ```bash
 gcc -o ggrep ggrep.c
