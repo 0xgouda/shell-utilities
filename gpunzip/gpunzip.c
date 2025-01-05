@@ -6,11 +6,6 @@
 #include <pthread.h>
 #include <stdlib.h>
 
-typedef struct {
-    int num;
-    char letter;
-} element;
-
 int curr_file = 1;
 int numOfFiles;
 char ** args;
@@ -20,13 +15,14 @@ pthread_mutex_t curr_file_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t write_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t write_wait = PTHREAD_COND_INITIALIZER;
 
-element *ptr = NULL;
+void *ptr = NULL;
 struct stat filestat;
 size_t curr_chunk;
 int THREAD_BUFFER_SIZE = 1048576;
 int NUM_OF_THREAD_CHUNK_ELEMENTS = 3072;
 int current_writer = 0;
 int writeId = 0;
+int CHUNK_SIZE = sizeof(int) + sizeof(char);
 
 void write_buffer(int writer_id, char *my_buffer, int buffer_len) {
     pthread_mutex_lock(&write_lock);
@@ -70,7 +66,7 @@ int open_new_file(char *my_buffer) {
         exit(1);
     }
 
-    ptr = (element *) mmap(NULL, filestat.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+    ptr = mmap(NULL, filestat.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
     if (ptr == MAP_FAILED) {
         fprintf(stderr, "Failed to Allocate Memory\n");
         exit(1);
@@ -96,16 +92,16 @@ void *worker(void *my_thread_id) {
             return NULL;
         }
 
-        int my_chunk = curr_chunk;
-        element *local_ptr = ptr + my_chunk;
+        int my_chunk = curr_chunk * CHUNK_SIZE;
+        char *local_ptr = (char *)ptr + my_chunk;
         curr_chunk += NUM_OF_THREAD_CHUNK_ELEMENTS;
         size_t sz = filestat.st_size;
 
         int my_limit = 0;
-        if (curr_chunk * sizeof(element) <= filestat.st_size) {
+        if (curr_chunk * CHUNK_SIZE <= filestat.st_size) {
             my_limit = NUM_OF_THREAD_CHUNK_ELEMENTS;
         } else {
-            my_limit = (filestat.st_size / sizeof(element)) % NUM_OF_THREAD_CHUNK_ELEMENTS;
+            my_limit = (filestat.st_size / CHUNK_SIZE) % NUM_OF_THREAD_CHUNK_ELEMENTS;
             ptr = NULL;
         }
 
@@ -115,9 +111,14 @@ void *worker(void *my_thread_id) {
         pthread_mutex_unlock(&curr_file_lock);
 
         int buffer_len = 0;
-        for (int i = 0; i < my_limit; local_ptr++, i++) {
-            for (int j = 0; j < local_ptr->num; j++) {
-                my_buffer[buffer_len] = local_ptr->letter;
+        for (int i = 0; i < my_limit; i++) {
+           int num = *(int *)local_ptr;
+           local_ptr += sizeof(int);
+           char letter = *local_ptr; 
+           local_ptr++;
+
+            for (int j = 0; j < num; j++) {
+                my_buffer[buffer_len] = letter;
                 buffer_len++;
 
                 if (buffer_len >= THREAD_BUFFER_SIZE) {
@@ -129,8 +130,8 @@ void *worker(void *my_thread_id) {
         write_buffer(writer_id, my_buffer, buffer_len);
         done_writing();
 
-        if ((my_chunk + my_limit) * sizeof(element) >= sz) {
-            munmap(local_ptr - my_chunk, sz);
+        if ((my_chunk + my_limit) * CHUNK_SIZE >= sz) {
+            munmap((char *)local_ptr - my_chunk, sz);
         }
     }
 }

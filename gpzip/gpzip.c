@@ -43,7 +43,7 @@ void write_buffer(int writer_id, element *my_buffer, int buffer_len) {
         fwrite(&last_element.letter, sizeof(char), 1, stdout);
     }
 
-    for (int i = 0; i < buffer_len; i++) {
+    for (int i = 0; i < buffer_len - 1; i++) {
         fwrite(&my_buffer[i].num, sizeof(int), 1, stdout);
         fwrite(&my_buffer[i].letter, sizeof(char), 1, stdout);
     }
