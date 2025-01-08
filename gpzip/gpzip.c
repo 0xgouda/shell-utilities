@@ -40,12 +40,12 @@ void write_buffer(int writer_id, element *my_buffer, int buffer_len) {
         my_buffer[0].num += last_element.num;
     } else {
         fwrite(&last_element.num, sizeof(int), 1, stdout);
-        fwrite(&last_element.letter, sizeof(char), 1, stdout);
+        putchar(last_element.letter);
     }
 
     for (int i = 0; i < buffer_len - 1; i++) {
         fwrite(&my_buffer[i].num, sizeof(int), 1, stdout);
-        fwrite(&my_buffer[i].letter, sizeof(char), 1, stdout);
+        putchar(my_buffer[i].letter);
     }
     last_element = my_buffer[buffer_len - 1];
 
@@ -181,7 +181,7 @@ int main (int argc, char** argv) {
         pthread_join(threads[i], NULL);
     }
     fwrite(&last_element.num, sizeof(int), 1, stdout);
-    fwrite(&last_element.letter, sizeof(char), 1, stdout);
+    putchar(last_element.letter);
 
     free(tmp);
 }
