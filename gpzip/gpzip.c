@@ -9,7 +9,7 @@
 typedef struct {
     int num;
     char letter;
-} element;
+} __attribute__((packed)) element;
 
 int curr_file = 1;
 int numOfFiles;
@@ -23,7 +23,7 @@ pthread_cond_t write_wait = PTHREAD_COND_INITIALIZER;
 char *ptr = NULL;
 struct stat filestat;
 size_t curr_chunk;
-int THREAD_CHUNK = 1048576;
+int THREAD_CHUNK = 524288;
 int NUM_OF_THREAD_BUFFER_ELEMENTS = 100000;
 int current_writer = 0;
 int writeId = 0;
@@ -39,14 +39,10 @@ void write_buffer(int writer_id, element *my_buffer, int buffer_len) {
     if (buffer_len && my_buffer[0].letter == last_element.letter) {
         my_buffer[0].num += last_element.num;
     } else {
-        fwrite(&last_element.num, sizeof(int), 1, stdout);
-        putchar(last_element.letter);
+        fwrite(&last_element, sizeof(element), 1, stdout);
     }
 
-    for (int i = 0; i < buffer_len - 1; i++) {
-        fwrite(&my_buffer[i].num, sizeof(int), 1, stdout);
-        putchar(my_buffer[i].letter);
-    }
+    fwrite(my_buffer, sizeof(element), buffer_len - 1, stdout);
     last_element = my_buffer[buffer_len - 1];
 
     pthread_mutex_unlock(&write_lock);
@@ -180,8 +176,7 @@ int main (int argc, char** argv) {
     for (int i = 0; i < numOfThreads; i++) {
         pthread_join(threads[i], NULL);
     }
-    fwrite(&last_element.num, sizeof(int), 1, stdout);
-    putchar(last_element.letter);
+    fwrite(&last_element, sizeof(element), 1, stdout);
 
     free(tmp);
 }
