@@ -1,5 +1,5 @@
 # Shell Utilites
-- a collection of implementations of popular Linux command-line utilities, built from scratch. The tools are simplified versions of cat, zip, unzip, and grep.
+- a collection of implementations of popular Linux command-line utilities, built from scratch. The tools are simplified versions of cat, zip, unzip, stat and grep.
 - gpzip & gpunzip are multi-threaded versions of zip & unzip
 
 > gpzip&gzip use RLE encoding e.g aaa = 3a  
